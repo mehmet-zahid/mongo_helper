@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "mongohelper"
+version = "0.0.1"
+description = "simple helper package for mongodb operations"
+authors = ["Mehmet Zahid IŞIK <mehmetzahidisik@gmail.com>"]
+packages = [{include = "mongom", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "3.11.x"
+motor = "^3.1.2"
+loguru = "^0.7.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^7.3.1"
+sphinx = "^6.2.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
