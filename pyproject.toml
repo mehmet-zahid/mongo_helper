@@ -10,7 +10,7 @@ authors = ["Mehmet Zahid IŞIK <mehmetzahidisik@gmail.com>"]
 packages = [{include = "mongom"}]
 
 [tool.poetry.dependencies]
-python = ">=3.10.x"
+python = ">=3.10.0"
 motor = "^3.1.2"
 loguru = "^0.7.0"
 
