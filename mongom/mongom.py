@@ -147,5 +147,5 @@ class Mongoom:
         return del_count
 
 
-mymongoo = Mongoom()
+mongoo_instance = Mongoom()
         
