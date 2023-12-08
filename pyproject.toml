@@ -7,7 +7,7 @@ name = "mongohelper"
 version = "0.0.1"
 description = "simple helper package for mongodb operations"
 authors = ["Mehmet Zahid IŞIK <mehmetzahidisik@gmail.com>"]
-packages = [{include = "mongom"}]
+packages = [{include = "mongohelper"}]
 
 [tool.poetry.dependencies]
 python = ">=3.10.0"

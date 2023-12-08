@@ -14,6 +14,7 @@ def singleton(cls):
 
 @singleton
 class Mongoom:
+    POSSIBLE_CONN_STRINGS = ['MONGO_CONNECTION_STRING', 'MONGO_CONN_STR', 'MONGODB_URI', 'MONGO_URI', 'MONGO_URL']
     def __init__(self, connection_string: str = None) -> None:
         self.object_id = uuid4()
         logger.info('init function block, lazy initializing method')
@@ -38,16 +39,17 @@ class Mongoom:
             logger.warning("There is already an instance of motor client object !")
             return False
         if not self.connection_string:
-
-            if getenv('MONGO_CONNECTION_STRING'):
-                self.connection_string = getenv('MONGO_CONNECTION_STRING')
-            else:
-                logger.info("Could not found connection string in environment variables !\nMake sure connection string should be defined as 'MONGO_CONNECTION_STRING'")
+            for conn_str in self.POSSIBLE_CONN_STRINGS:
+                if getenv(conn_str):
+                    self.connection_string = getenv(conn_str)
+                    break
+            if not self.connection_string:
+                logger.info("Could not found connection string in environment variables !")
+        elif connection_string:
+            self.connection_string = connection_string
         else:
-            if connection_string:
-                self.connection_string = connection_string
-            else:
-                raise Exception("Please provide Connection String !")
+            raise Exception("Please provide Connection String via 'init_mongo()' method or env varibles !")
+        
         dbclient = AsyncIOMotorClient(self.connection_string)
         if await self.test_connection(dbclient):
             logger.info("Connection to MongoDB established successfully!")
