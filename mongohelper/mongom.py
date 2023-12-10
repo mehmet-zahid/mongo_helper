@@ -1,6 +1,5 @@
 from loguru import logger
 from os import getenv
-from uuid import uuid4
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorCollection
 
 
@@ -16,7 +15,8 @@ def singleton(cls):
 class Mongoom:
     POSSIBLE_CONN_STRINGS = ['MONGO_CONNECTION_STRING', 'MONGO_CONN_STR', 'MONGODB_URI', 'MONGO_URI', 'MONGO_URL']
     def __init__(self, connection_string: str = None) -> None:
-        self.object_id = uuid4()
+        if not connection_string:
+            logger.info("MongoDB connection string is not provided while initializing the class !")
         logger.info('init function block, lazy initializing method')
         self.initialized = None
         self.connection_string = connection_string
@@ -38,20 +38,24 @@ class Mongoom:
         if hasattr(self, "mongo_client"):
             logger.warning("There is already an instance of motor client object !")
             return False
-        if not self.connection_string:
+        
+        if connection_string:
+            self.connection_string = connection_string
+        elif not self.connection_string:
+            logger.info("Searching for connection string in environment variables ...")
             for conn_str in self.POSSIBLE_CONN_STRINGS:
                 if getenv(conn_str):
                     self.connection_string = getenv(conn_str)
+                    logger.info(f"Found connection string in environment variables: {conn_str}")
                     break
-            if not self.connection_string:
-                logger.info("Could not found connection string in environment variables !")
-        elif connection_string:
-            self.connection_string = connection_string
-        else:
+
+        if not self.connection_string:
+            logger.info("Could not found connection string in environment variables !")
             raise Exception("Please provide Connection String via 'init_mongo()' method or env varibles !")
-        
+            
         dbclient = AsyncIOMotorClient(self.connection_string)
-        if await self.test_connection(dbclient):
+        conn_verif = await self.test_connection(dbclient)
+        if conn_verif:   
             logger.info("Connection to MongoDB established successfully!")
             self.initialized = True
             self.motor_client = dbclient
