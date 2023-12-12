@@ -1,7 +1,8 @@
 from loguru import logger
 from os import getenv
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorCollection
-
+from motor.core import AgnosticCursor
+from functools import wraps
 
 def singleton(cls):
     instance = [None]
@@ -9,6 +10,19 @@ def singleton(cls):
         if instance[0] is None:
             instance[0] = cls(*args, **kwargs)
         return instance[0]
+    return wrapper
+
+def without_init_protection(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        if getattr(self, 'initialized', False):
+            # Bypass initialization protection
+            return func(self, *args, **kwargs)
+        else:
+            logger.warning("Attempted to call a method without initializing the MongoDB connection.")
+            # You can choose to raise an exception, log a warning, or handle it in any other way
+            raise Exception("Attempted to call a method without initializing the MongoDB connection.")
+    
     return wrapper
 
 @singleton
@@ -61,13 +75,16 @@ class Mongoom:
             self.motor_client = dbclient
             return True
         raise Exception("Failed to connect to the database!")  
-
+    
+    @without_init_protection
     def get_db(self, db_name: str) -> AsyncIOMotorDatabase:
         return self.motor_client[db_name]
     
+    @without_init_protection
     def get_client(self) -> AsyncIOMotorClient:
         return self.motor_client
     
+    @without_init_protection
     def get_collection(self, db_name: str, collection_name: str) -> AsyncIOMotorCollection:
         return self.motor_client[db_name][collection_name]
     
@@ -96,7 +113,12 @@ class Mongoom:
         return collections
     
     @staticmethod
-    async def search_for_field_in_collection(collection: AsyncIOMotorCollection, fields: list[str], limit=0) -> list[str]:
+    async def search_for_field_in_collection(
+        collection: AsyncIOMotorCollection, 
+        fields: list[str], 
+        limit=0
+        ) -> AgnosticCursor:
+        
         query = {field: {'$exists': True} for field in fields}
         field_dict = {field: 1 for field in fields}
         projection = {'_id': 1, **field_dict}

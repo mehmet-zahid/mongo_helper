@@ -71,7 +71,6 @@ class MongoClientAdapter:
         def __init__(self,
                      collection_name: str,
                      operation,
-                     document,
                      collection,
                      query=None,
                      update=None,
@@ -129,44 +128,6 @@ class MongoClientAdapter:
                 elif self.operation == Operations.FIND_MANY:
                     cursor = await self.collection.find(self.query, self.projection, session=session)
                     return await cursor.to_list(length=None)
-                else:
-                    raise ValueError('Invalid operation.')
-            if session is None:
-                if self.operation == Operations.INSERT_ONE:
-                    return await self.collection.insert_one(self.document)
-                elif self.operation == Operations.UPDATE_ONE:
-                    return await self.collection.update_one(self.document)
-                elif self.operation == Operations.DELETE_ONE:
-                    return await self.collection.delete_one(self.document)
-                elif self.operation == Operations.INSERT_MANY:
-                    return await self.collection.insert_many(self.document)
-                elif self.operation == Operations.UPDATE_MANY:
-                    return await self.collection.update_many(self.document)
-                elif self.operation == Operations.DELETE_MANY:
-                    return await self.collection.delete_many(self.document)
-                elif self.operation == Operations.FIND_ONE:
-                    return await self.collection.find_one(self.document)
-                elif self.operation == Operations.FIND_MANY:
-                    return await self.collection.find(self.document)
-                else:
-                    raise ValueError('Invalid operation.')
-            else:
-                if self.operation == Operations.INSERT_ONE:
-                    return await self.collection.insert_one(self.document, session=session)
-                elif self.operation == Operations.UPDATE_ONE:
-                    return await self.collection.update_one(self.document, session=session)
-                elif self.operation == Operations.DELETE_ONE:
-                    return await self.collection.delete_one(self.document, session=session)
-                elif self.operation == Operations.INSERT_MANY:
-                    return await self.collection.insert_many(self.document, session=session)
-                elif self.operation == Operations.UPDATE_MANY:
-                    return await self.collection.update_many(self.document, session=session)
-                elif self.operation == Operations.DELETE_MANY:
-                    return await self.collection.delete_many(self.document, session=session)
-                elif self.operation == Operations.FIND_ONE:
-                    return await self.collection.find_one(self.document, session=session)
-                elif self.operation == Operations.FIND_MANY:
-                    return await self.collection.find(self.document, session=session)
                 else:
                     raise ValueError('Invalid operation.')
 
