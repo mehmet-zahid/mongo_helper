@@ -1,8 +1,14 @@
 from loguru import logger
 from os import getenv
-from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase, AsyncIOMotorCollection
+from motor.motor_asyncio import (
+    AsyncIOMotorClient, 
+    AsyncIOMotorDatabase, 
+    AsyncIOMotorCollection,
+    AsyncIOMotorCursor
+)
 from motor.core import AgnosticCursor
 from functools import wraps
+from typing import Dict
 
 def singleton(cls):
     instance = [None]
@@ -11,6 +17,18 @@ def singleton(cls):
             instance[0] = cls(*args, **kwargs)
         return instance[0]
     return wrapper
+
+def select_fields(include: list[str]=None, exclude: list[str]=None):
+    if include and exclude:
+        raise ValueError("Cannot include and exclude fields at the same time.")
+    projection = {}
+    if include:
+        for field in include:
+            projection[field] = 1
+    elif exclude:
+        for field in exclude:
+            projection[field] = 0
+    return projection
 
 def without_init_protection(func):
     @wraps(func)
@@ -37,8 +55,8 @@ class Mongoom:
         logger.info(f"self.initialized :{self.initialized}")
         logger.info(f"self.connection_string :{self.connection_string}")
         
-    @staticmethod
-    async def test_connection(dbclient: AsyncIOMotorClient):
+    
+    async def test_connection(self, dbclient: AsyncIOMotorClient):
         try:
             
             if isinstance(dbclient, AsyncIOMotorClient):
@@ -70,9 +88,10 @@ class Mongoom:
         dbclient = AsyncIOMotorClient(self.connection_string)
         conn_verif = await self.test_connection(dbclient)
         if conn_verif:   
-            logger.info("Connection to MongoDB established successfully!")
+            logger.success("Connection to MongoDB established successfully!")
             self.initialized = True
             self.motor_client = dbclient
+            logger.success(f"self.initialized :{self.initialized}")
             return True
         raise Exception("Failed to connect to the database!")  
     
@@ -114,16 +133,89 @@ class Mongoom:
     
     @staticmethod
     async def search_for_field_in_collection(
+        self,
         collection: AsyncIOMotorCollection, 
         fields: list[str], 
-        limit=0
-        ) -> AgnosticCursor:
+        limit=0,
+        as_list: bool = True
+        ) -> list | AgnosticCursor:
         
         query = {field: {'$exists': True} for field in fields}
         field_dict = {field: 1 for field in fields}
         projection = {'_id': 1, **field_dict}
         cursor = collection.find(query, projection=projection).limit(limit)
+        if as_list:
+            return [document async for document in cursor]
         return cursor
+    
+    @staticmethod
+    async def query_with_projection(
+        collection: AsyncIOMotorCollection,
+        query: Dict,
+        include_fields: list[str] = None,
+        exclude_fields: list[str] = None,
+        limit: int = 0,
+        as_list: bool = True
+        ) -> list | AgnosticCursor:
+
+        if include_fields and exclude_fields:
+            raise ValueError("Cannot include and exclude fields at the same time.")
+        if include_fields:
+            projection = select_fields(include=include_fields)
+        elif exclude_fields:
+            projection = select_fields(exclude=exclude_fields)
+        else:
+            projection = None
+        cursor = collection.find(query, projection=projection).limit(limit)
+        if as_list:
+            return [document async for document in cursor]
+        return cursor
+    
+    @staticmethod
+    async def filter_by_properties(
+        collection: AsyncIOMotorCollection,
+        properties: dict,
+        limit: int = 0,
+        as_list: bool = True
+        ) -> list | AgnosticCursor:
+        query = {key: value for key, value in properties.items()}
+        cursor = collection.find(query).limit(limit)
+        if as_list:
+            return [document async for document in cursor]
+        return cursor
+    
+    @staticmethod
+    async def sort_documents(
+        cursor: AsyncIOMotorCursor,
+        sort_field: str,
+        ascending: bool = True,
+        as_list: bool = True
+        ) -> list | AsyncIOMotorCursor:
+
+        sort_order = 1 if ascending else -1
+        cursor.sort(sort_field, sort_order)
+        if as_list:
+            return [document async for document in cursor]
+        return cursor
+    
+    @staticmethod
+    async def update_documents(
+        collection: AsyncIOMotorCollection,
+        filter_query: dict,
+        update_query: dict
+        ) -> int:
+
+        result = await collection.update_many(filter_query, {'$set': update_query})
+        return result.modified_count
+    
+    @staticmethod
+    async def delete_documents(
+        collection: AsyncIOMotorCollection,
+        filter_query: dict
+        ) -> int:
+
+        result = await collection.delete_many(filter_query)
+        return result.deleted_count
     
     @staticmethod
     async def get_dublicates(collection: AsyncIOMotorCollection, field: str):
