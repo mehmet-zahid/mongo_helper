@@ -4,7 +4,7 @@ requires = ["poetry-core"]
 
 [tool.poetry]
 name = "mongohelper"
-version = "0.0.1"
+version = "0.0.2"
 description = "simple helper package for mongodb operations"
 authors = ["Mehmet Zahid IŞIK <mehmetzahidisik@gmail.com>"]
 packages = [{include = "mongohelper"}]

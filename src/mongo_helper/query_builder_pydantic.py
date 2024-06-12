@@ -4,7 +4,7 @@ from typing import List, Tuple, Dict, Any, Union, Optional, Type, TypeVar, Gener
 
 
 class AsyncPydanticQueryBuilder:
-    def __init__(self, adapter, db_name, collection_name, model: Type[T]):
+    def __init__(self, adapter: MongoClientAdapter, db_name, collection_name, model: Type[T]):
         self.adapter = adapter
         self.db_name = db_name
         self.collection_name = collection_name
@@ -24,8 +24,8 @@ class AsyncPydanticQueryBuilder:
     # TODO: Improve and fix this method
     
 
-    async def insert_one(self, document: ) -> str:
-        result = await self.collection.insert_one(document.dict())
+    async def insert_one(self, document) -> str:
+        result = await self.collection.insert_one(document)
         return str(result.inserted_id)
 
     async def find_one(self, query=None, projection=None) -> Optional[T]:
